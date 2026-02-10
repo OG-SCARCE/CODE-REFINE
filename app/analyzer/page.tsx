@@ -18,12 +18,14 @@ import {
   ArrowRight,
   ChevronDown,
   Gauge,
+  Lightbulb,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import ParticleCanvas from '@/components/particle-canvas'
-import type { AnalysisResult, Optimization } from '../app/types'
+import CodeInsightsPanel from '@/components/code-insights-panel' // Import CodeInsightsPanel
+import type { AnalysisResult, Optimization, CodeGenerationResult } from '../app/types'
 
 // Collapsible optimization item with useTransition
 function OptimizationItem({
@@ -111,6 +113,12 @@ export default function AnalyzerPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  
+  // Code Generation State
+  const [generationPrompt, setGenerationPrompt] = useState<string>('')
+  const [generationResult, setGenerationResult] = useState<CodeGenerationResult | null>(null)
+  const [isGenerating, setIsGenerating] = useState<boolean>(false)
+  const [generationError, setGenerationError] = useState<string | null>(null)
 
   // useTransition for navigation and analysis
   const [isNavigating, startNavigation] = useTransition()
@@ -186,6 +194,40 @@ export default function AnalyzerPage() {
     },
     [router, startNavigation]
   )
+
+  const handleGenerateCode = useCallback(async () => {
+    if (!generationPrompt.trim()) {
+      setGenerationError('Please enter a prompt to generate code.')
+      return
+    }
+    setIsGenerating(true)
+    setGenerationError(null)
+    setGenerationResult(null)
+
+    startAnalysis(() => {
+      ;(async () => {
+        try {
+          const response = await fetch('/api/generate-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: generationPrompt }),
+          })
+
+          if (!response.ok) {
+            const data = await response.json()
+            throw new Error(data.error || 'Failed to generate code')
+          }
+
+          const result = await response.json()
+          setGenerationResult(result)
+        } catch (err) {
+          setGenerationError(err instanceof Error ? err.message : 'An error occurred')
+        } finally {
+          setIsGenerating(false)
+        }
+      })()
+    })
+  }, [generationPrompt, startAnalysis])
 
   const getSeverityClasses = useCallback((severity: string) => {
     switch (severity) {
@@ -368,6 +410,41 @@ export default function AnalyzerPage() {
               </div>
             </div>
 
+            {/* Code Generation Card */}
+            <div className="group p-8 bg-gradient-to-br from-black/80 to-black/60 border border-white/15 rounded-xl hover:border-white/40 transition-all duration-500 animate-fade-in-up backdrop-blur-xl" style={{ animationDelay: '0.1s' }}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center group-hover:bg-white/20 transition-all group-hover:animate-glow">
+                  <Lightbulb className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-white">
+                  Generate Code
+                </h2>
+              </div>
+              <textarea
+                value={generationPrompt}
+                onChange={(e) => setGenerationPrompt(e.target.value)}
+                placeholder="Describe the code you want to generate (e.g., 'Create a function to validate email addresses')..."
+                className="w-full h-64 bg-black/80 border border-white/20 rounded-lg p-4 text-white placeholder-gray-500 focus:outline-none focus:border-white/50 resize-none transition-all duration-300 font-mono text-sm"
+              />
+              <Button
+                onClick={handleGenerateCode}
+                disabled={isGenerating || !generationPrompt.trim()}
+                className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 font-bold transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isGenerating ? (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    Generate Code
+                    <Lightbulb className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+
             {/* What We Analyze Card */}
             <div className="group p-8 bg-gradient-to-br from-black/80 to-black/60 border border-white/15 rounded-xl hover:border-white/40 transition-all duration-500 animate-fade-in-up backdrop-blur-xl" style={{ animationDelay: '0.1s' }}>
               <div className="flex items-center gap-3 mb-6">
@@ -424,12 +501,86 @@ export default function AnalyzerPage() {
                 ))}
               </div>
             </div>
+
           </div>
 
-          {/* Error Message */}
+          {/* Error Messages */}
           {error && (
             <div className="mb-8 p-6 bg-gradient-to-br from-red-950/80 to-red-950/60 border border-red-500/30 rounded-xl animate-slide-left backdrop-blur-xl">
               <p className="text-red-300 font-medium">{error}</p>
+            </div>
+          )}
+          
+          {generationError && (
+            <div className="mb-8 p-6 bg-gradient-to-br from-red-950/80 to-red-950/60 border border-red-500/30 rounded-xl animate-slide-left backdrop-blur-xl">
+              <p className="text-red-300 font-medium">{generationError}</p>
+            </div>
+          )}
+
+          {/* Code Generation Results */}
+          {generationResult && (
+            <div className="space-y-8 mb-12">
+              {/* Generated Code Card */}
+              <Card className="p-8 bg-gradient-to-br from-black/80 to-black/60 border border-white/15 rounded-xl backdrop-blur-xl hover:border-white/40 transition-all duration-500 hover:shadow-2xl hover:shadow-white/10 animate-scale-in">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center animate-glow">
+                      <Lightbulb className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <span className="text-lg font-bold uppercase tracking-widest text-white">
+                        Generated Code
+                      </span>
+                      <p className="text-sm text-gray-400 mt-1">{generationResult.language}</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      copyToClipboard(generationResult.code, -2)
+                    }
+                    className="bg-white text-black hover:bg-gray-100 font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-white/20"
+                  >
+                    {copiedIndex === -2 ? (
+                      <>
+                        <Check className="w-4 h-4 mr-1" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-1" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <pre className="bg-black/90 border border-white/10 rounded-lg p-6 overflow-x-auto text-sm text-gray-200 font-mono leading-relaxed mb-6">
+                  <code>{generationResult.code}</code>
+                </pre>
+                <div>
+                  <p className="text-sm text-gray-400 mb-2 font-semibold">Explanation:</p>
+                  <p className="text-gray-200 leading-relaxed">
+                    {generationResult.explanation}
+                  </p>
+                </div>
+              </Card>
+
+              {/* Reset Button */}
+              <div className="text-center">
+                <Button
+                  size="lg"
+                  className="bg-white text-black hover:bg-gray-100 font-bold text-base px-8 py-6 rounded-lg transition-all duration-300 hover:shadow-2xl hover:shadow-white/30 hover:scale-105"
+                  onClick={() => {
+                    setGenerationPrompt('')
+                    setGenerationResult(null)
+                    setGenerationError(null)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                >
+                  Generate More Code{' '}
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </div>
             </div>
           )}
 

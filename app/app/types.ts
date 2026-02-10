@@ -21,3 +21,9 @@ export interface AnalysisResult {
   optimizations: Optimization[];
   complexity: ComplexityAnalysis;
 }
+
+export interface CodeGenerationResult {
+  code: string;
+  language: string;
+  explanation: string;
+}
