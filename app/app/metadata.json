@@ -1,0 +1,5 @@
+{
+  "name": "CodeRefine-ONSLAUGHT",
+  "description": "An AI-powered developer assistant that analyzes large codebases, detects inefficiencies, suggests optimizations, and explains improvements. It supports long-context code understanding, refactoring guidance, and structured reasoning to enhance code quality and maintainability.",
+  "requestFramePermissions": []
+}
