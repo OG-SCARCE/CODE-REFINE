@@ -2,8 +2,6 @@
 __v0_runtime_loader.js
 __v0_devtools.tsx
 __v0_jsx-dev-runtime.ts
-instrumentation-client.js
-instrumentation-client.ts
 
 # Common ignores
 node_modules/

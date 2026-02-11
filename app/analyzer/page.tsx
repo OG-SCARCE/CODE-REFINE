@@ -554,7 +554,7 @@ export default function AnalyzerPage() {
                     )}
                   </Button>
                 </div>
-                <pre className="bg-black/90 border border-white/10 rounded-lg p-6 overflow-x-auto text-sm text-gray-200 font-mono leading-relaxed mb-6">
+                <pre className="bg-black/90 border border-white/10 rounded-lg p-6 overflow-auto max-h-96 text-sm text-gray-200 font-mono leading-relaxed mb-6 whitespace-pre-wrap break-words">
                   <code>{generationResult.code}</code>
                 </pre>
                 <div>
@@ -718,7 +718,7 @@ export default function AnalyzerPage() {
                     )}
                   </Button>
                 </div>
-                <pre className="bg-black/90 border border-white/10 rounded-lg p-6 overflow-x-auto text-sm text-gray-200 font-mono leading-relaxed">
+                <pre className="bg-black/90 border border-white/10 rounded-lg p-6 overflow-auto max-h-96 text-sm text-gray-200 font-mono leading-relaxed whitespace-pre-wrap break-words">
                   <code>{analysisResult.refactoredCode}</code>
                 </pre>
               </Card>
